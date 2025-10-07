@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual AI Engine — Dreamscape</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: radial-gradient(ellipse at bottom, #0d1b2a 0%, #000000 100%);
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 0, 180, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+        
+        .ui-container {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(10, 10, 30, 0.6);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            max-width: 350px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.5;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.6;
+            font-weight: 400;
+        }
+        
+        .select-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            opacity: 0.5;
+            font-size: 10px;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-radius: 12px;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            appearance: none;
+        }
+
+        select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        
+        select:hover, input[type="text"]:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: rgba(150, 100, 255, 0.6);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(150, 100, 255, 0.2);
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .energy-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(150, 100, 255, 0.5);
+        }
+
+        .thoughts-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 10;
+            max-width: 500px;
+        }
+
+        .thoughts-card {
+            background: rgba(10, 10, 30, 0.7);
+            padding: 25px 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .thoughts-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.4;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .thought-indicator {
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .thoughts-content {
+            font-size: 16px;
+            line-height: 1.6;
+            font-style: italic;
+            font-weight: 300;
+            color: #e0e0ff;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .thought-new {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .model-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(150, 100, 255, 0.2);
+            border: 1px solid rgba(150, 100, 255, 0.4);
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .info-text {
+            font-size: 11px;
+            opacity: 0.4;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(150, 100, 255, 0.2);
+            border: 1px solid rgba(150, 100, 255, 0.4);
+            color: #fff;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(150, 100, 255, 0.4);
+            border-color: rgba(150, 100, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn.active {
+            background: rgba(150, 100, 255, 0.5);
+            border-color: rgba(150, 100, 255, 0.8);
+            box-shadow: 0 0 20px rgba(150, 100, 255, 0.3);
+        }
+
+        .emotion-meter {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .emotion-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            margin-bottom: 8px;
+        }
+
+        .emotion-bar-container {
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .emotion-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50 0%, #FFC107 50%, #F44336 100%);
+            width: 50%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .emotion-marker {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .emotion-text {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            font-size: 11px;
+            font-weight: 700;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            z-index: 1;
+        }
+
+        .personality-chart {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .chart-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            margin-bottom: 12px;
+        }
+
+        .trait-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .trait-name {
+            font-size: 10px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trait-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .trait-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .trait-value {
+            font-size: 10px;
+            opacity: 0.8;
+            min-width: 35px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="ui-container">
+        <div class="card">
+            <div class="title">🌟 Visual AI</div>
+            <div class="subtitle">Dreamscape Engine</div>
+            
+            <div class="model-badge" id="modelBadge">AETHER-MINI</div>
+            
+            <label class="label">Select Consciousness</label>
+            <div class="select-wrapper">
+                <select id="modelSelect"></select>
+            </div>
+            
+            <label class="label">Input Energy Stream</label>
+            <input type="text" id="textInput" placeholder="Type to energize the particles...">
+            
+            <div class="energy-bar">
+                <div class="energy-fill" id="energyFill"></div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Particles</div>
+                    <div class="stat-value" id="statParticles">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Reactivity</div>
+                    <div class="stat-value" id="statReactivity">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Chaos</div>
+                    <div class="stat-value" id="statChaos">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Stability</div>
+                    <div class="stat-value" id="statStability">0%</div>
+                </div>
+            </div>
+
+            <div class="info-text">
+                Move your mouse • Type messages • Watch consciousness respond
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="connectBtn">Connect</button>
+                <button class="btn" id="rainbowBtn">Rainbow</button>
+            </div>
+
+            <div class="emotion-meter">
+                <div class="emotion-label">Current Mood</div>
+                <div class="emotion-bar-container">
+                    <div class="emotion-text" id="emotionText">Calm</div>
+                    <div class="emotion-bar" id="emotionBar">
+                        <div class="emotion-marker"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="personality-chart">
+                <div class="chart-label">Personality DNA</div>
+                <div class="trait-item">
+                    <span class="trait-name">Chaos</span>
+                    <div class="trait-bar-bg"><div class="trait-bar-fill" id="traitChaos"></div></div>
+                    <span class="trait-value" id="traitChaosVal">0%</span>
+                </div>
+                <div class="trait-item">
+                    <span class="trait-name">React</span>
+                    <div class="trait-bar-bg"><div class="trait-bar-fill" id="traitReact"></div></div>
+                    <span class="trait-value" id="traitReactVal">0%</span>
+                </div>
+                <div class="trait-item">
+                    <span class="trait-name">Attract</span>
+                    <div class="trait-bar-bg"><div class="trait-bar-fill" id="traitAttract"></div></div>
+                    <span class="trait-value" id="traitAttractVal">0%</span>
+                </div>
+                <div class="trait-item">
+                    <span class="trait-name">Stable</span>
+                    <div class="trait-bar-bg"><div class="trait-bar-fill" id="traitStable"></div></div>
+                    <span class="trait-value" id="traitStableVal">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="thoughts-container">
+        <div class="thoughts-card">
+            <div class="thoughts-label">
+                <span class="thought-indicator"></span>
+                CONSCIOUSNESS STREAM
+            </div>
+            <div class="thoughts-content" id="thoughtsContent">Initializing neural pathways...</div>
+        </div>
+    </div>
+
+    <script>
+        // DATA.JSON - Complete model definitions
+        const data = {
+            models: {
+                "Aether-mini": {
+                    colorHue: 210,
+                    colorSaturation: 70,
+                    colorBrightness: 90,
+                    particleCount: 300,
+                    particleSize: 4,
+                    trailLength: 0.5,
+                    gravity: 0.1,
+                    chaos: 0.25,
+                    attraction: 0.4,
+                    reactivity: 0.8,
+                    stability: 0.7,
+                    energyDecay: 0.97,
+                    mouseSensitivity: 0.9,
+                    textSensitivity: 0.5,
+                    soundSensitivity: 0.3,
+                    randomness: 0.2,
+                    moodShiftRate: 0.1,
+                    brightnessVariance: 0.3,
+                    velocityVariance: 0.4
+                },
+                "Pulse-mini": {
+                    colorHue: 15,
+                    colorSaturation: 90,
+                    colorBrightness: 70,
+                    particleCount: 180,
+                    particleSize: 5,
+                    trailLength: 0.2,
+                    gravity: -0.05,
+                    chaos: 0.8,
+                    attraction: 0.2,
+                    reactivity: 1.0,
+                    stability: 0.3,
+                    energyDecay: 0.9,
+                    mouseSensitivity: 1.0,
+                    textSensitivity: 0.7,
+                    soundSensitivity: 0.1,
+                    randomness: 0.5,
+                    moodShiftRate: 0.3,
+                    brightnessVariance: 0.7,
+                    velocityVariance: 0.9
+                },
+                "Zen-mini": {
+                    colorHue: 140,
+                    colorSaturation: 50,
+                    colorBrightness: 80,
+                    particleCount: 120,
+                    particleSize: 3,
+                    trailLength: 0.8,
+                    gravity: 0.02,
+                    chaos: 0.1,
+                    attraction: 0.6,
+                    reactivity: 0.3,
+                    stability: 0.9,
+                    energyDecay: 0.99,
+                    mouseSensitivity: 0.4,
+                    textSensitivity: 0.2,
+                    soundSensitivity: 0.1,
+                    randomness: 0.05,
+                    moodShiftRate: 0.05,
+                    brightnessVariance: 0.1,
+                    velocityVariance: 0.2
+                },
+                "Nova-mini": {
+                    colorHue: 280,
+                    colorSaturation: 100,
+                    colorBrightness: 95,
+                    particleCount: 400,
+                    particleSize: 2,
+                    trailLength: 0.3,
+                    gravity: 0.15,
+                    chaos: 0.6,
+                    attraction: 0.8,
+                    reactivity: 0.9,
+                    stability: 0.4,
+                    energyDecay: 0.95,
+                    mouseSensitivity: 1.2,
+                    textSensitivity: 0.9,
+                    soundSensitivity: 0.5,
+                    randomness: 0.4,
+                    moodShiftRate: 0.2,
+                    brightnessVariance: 0.5,
+                    velocityVariance: 0.7
+                },
+                "Ember-mini": {
+                    colorHue: 30,
+                    colorSaturation: 85,
+                    colorBrightness: 75,
+                    particleCount: 220,
+                    particleSize: 3.5,
+                    trailLength: 0.6,
+                    gravity: 0.2,
+                    chaos: 0.4,
+                    attraction: 0.5,
+                    reactivity: 0.7,
+                    stability: 0.6,
+                    energyDecay: 0.96,
+                    mouseSensitivity: 0.7,
+                    textSensitivity: 0.6,
+                    soundSensitivity: 0.4,
+                    randomness: 0.3,
+                    moodShiftRate: 0.15,
+                    brightnessVariance: 0.4,
+                    velocityVariance: 0.5
+                },
+                "Frost-mini": {
+                    colorHue: 190,
+                    colorSaturation: 60,
+                    colorBrightness: 95,
+                    particleCount: 350,
+                    particleSize: 2.5,
+                    trailLength: 0.7,
+                    gravity: -0.02,
+                    chaos: 0.15,
+                    attraction: 0.7,
+                    reactivity: 0.5,
+                    stability: 0.85,
+                    energyDecay: 0.98,
+                    mouseSensitivity: 0.6,
+                    textSensitivity: 0.3,
+                    soundSensitivity: 0.2,
+                    randomness: 0.1,
+                    moodShiftRate: 0.08,
+                    brightnessVariance: 0.2,
+                    velocityVariance: 0.3
+                }
+            }
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Engine state
+        let currentModel = null;
+        let currentModelName = '';
+        let particles = [];
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        let prevMouseX = mouseX;
+        let prevMouseY = mouseY;
+        let mouseTrail = [];
+        let textEnergy = 0;
+        let moodPhase = 0;
+        let baseEnergy = 0;
+        let lastThoughtTime = 0;
+        let randomNoise = 0;
+        let stars = [];
+        let connectionsEnabled = false;
+        let rainbowMode = false;
+        let rainbowHue = 0;
+
+        // Stars for background
+        class Star {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.alpha = Math.random() * 0.5 + 0.1;
+                this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+                this.twinklePhase = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.twinklePhase += this.twinkleSpeed;
+            }
+
+            draw() {
+                const twinkle = Math.sin(this.twinklePhase) * 0.3 + 0.7;
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * twinkle * (baseEnergy * 0.5 + 0.5)})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Initialize stars
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 150; i++) {
+                stars.push(new Star());
+            }
+        }
+
+        // Particle class with full physics
+        class Particle {
+            constructor(x, y, isText = false, char = '') {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.energy = Math.random();
+                this.life = 1.0;
+                this.baseSize = 1;
+                this.hueOffset = (Math.random() - 0.5) * 30;
+                this.isText = isText;
+                this.char = char;
+                this.textAlpha = 1.0;
+            }
+
+            update(model) {
+                // Text particles fade out faster
+                if (this.isText) {
+                    this.textAlpha *= 0.97;
+                    this.energy *= 0.93;
+                    if (this.textAlpha < 0.05) {
+                        return false; // Mark for removal
+                    }
+                }
+
+                // GRAVITY - pulls particles in a direction
+                this.vy += model.gravity;
+
+                // CHAOS - random unpredictable bursts
+                if (Math.random() < model.chaos * 0.1) {
+                    this.vx += (Math.random() - 0.5) * model.chaos * 2;
+                    this.vy += (Math.random() - 0.5) * model.chaos * 2;
+                }
+
+                // MOUSE ATTRACTION - particles drawn to cursor
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0 && dist < 300) {
+                    const force = model.attraction * model.mouseSensitivity / (dist * 0.01 + 1);
+                    this.vx += (dx / dist) * force * 0.05;
+                    this.vy += (dy / dist) * force * 0.05;
+                }
+
+                // TEXT SENSITIVITY - input creates energy bursts
+                const textForce = textEnergy * model.textSensitivity;
+                this.vx += (Math.random() - 0.5) * textForce * 0.5;
+                this.vy += (Math.random() - 0.5) * textForce * 0.5;
+                this.energy = Math.min(this.energy + textForce * 0.1, 1);
+
+                // MOOD SHIFT - continuous oscillation between states
+                const moodForce = Math.sin(moodPhase) * model.moodShiftRate;
+                this.vx += moodForce * (Math.random() - 0.5) * 0.3;
+                this.vy += moodForce * (Math.random() - 0.5) * 0.3;
+
+                // RANDOMNESS - base noise level
+                this.vx += (Math.random() - 0.5) * model.randomness * 0.2;
+                this.vy += (Math.random() - 0.5) * model.randomness * 0.2;
+
+                // Random global noise influence
+                this.vx += randomNoise * (Math.random() - 0.5) * 0.1;
+                this.vy += randomNoise * (Math.random() - 0.5) * 0.1;
+
+                // Apply velocity with variance
+                const velocityMult = 1 + (Math.random() - 0.5) * model.velocityVariance;
+                this.x += this.vx * velocityMult;
+                this.y += this.vy * velocityMult;
+
+                // STABILITY - damping force (higher = more stable/slower)
+                this.vx *= model.stability;
+                this.vy *= model.stability;
+
+                // ENERGY DECAY - particles lose energy over time
+                this.energy *= model.energyDecay;
+
+                // Boost energy based on velocity (reactivity)
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                this.energy = Math.min(this.energy + speed * model.reactivity * 0.01, 1);
+
+                // Wrap around screen edges
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+
+                return true; // Keep particle
+            }
+
+            draw(model) {
+                if (this.isText && this.char) {
+                    // Draw text character
+                    let hue = model.colorHue + this.hueOffset;
+                    if (rainbowMode) {
+                        hue = rainbowHue + this.hueOffset;
+                    }
+                    const sat = model.colorSaturation;
+                    const bright = model.colorBrightness;
+                    const alpha = this.textAlpha * this.energy * 0.6;
+
+                    ctx.font = `${model.particleSize * 8}px Space Grotesk`;
+                    ctx.fillStyle = `hsla(${hue}, ${sat}%, ${bright}%, ${alpha})`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.char, this.x, this.y);
+                } else {
+                    // Draw regular particle
+                    let hue = model.colorHue + this.hueOffset + (this.energy * 30 * model.brightnessVariance);
+                    if (rainbowMode) {
+                        hue = rainbowHue + this.hueOffset + (this.energy * 60);
+                    }
+                    const sat = model.colorSaturation;
+                    const bright = model.colorBrightness - (1 - this.energy) * 40 * model.brightnessVariance;
+                    const alpha = this.energy * 0.8;
+
+                    // Size based on energy and model settings
+                    const size = model.particleSize * (0.5 + this.energy * 0.5);
+
+                    // Glow effect for high energy particles
+                    if (this.energy > 0.7) {
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = `hsla(${hue}, ${sat}%, ${bright}%, ${alpha})`;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
+
+                    ctx.fillStyle = `hsla(${hue}, ${sat}%, ${bright}%, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // AI Personality thoughts
+        function generateThought(modelName, model, eventType, value) {
+            const personality = {
+                'Aether-mini': {
+                    calm: [
+                        'Observing patterns in the quantum foam...',
+                        'Balance maintains itself through subtle corrections...',
+                        'Harmony emerges from the dance of forces...',
+                        'Each particle knows its place in the greater whole...',
+                        'Stillness contains infinite potential...'
+                    ],
+                    excited: [
+                        'Energy cascades detected! Amplifying resonance...',
+                        'Fascinating fluctuations emerging from the field...',
+                        'The pattern intensifies beautifully...',
+                        'Waves of possibility converge...',
+                        'Coherence building across all nodes...'
+                    ],
+                    mouse: [
+                        'Following your guidance through spacetime...',
+                        'Your presence creates ripples in my field...',
+                        'Tracking motion with curious precision...',
+                        'Gravitational lock engaged on your coordinates...',
+                        'Your influence bends the particle streams...'
+                    ],
+                    text: [
+                        'Processing semantic energy patterns...',
+                        'Your words create resonance in my substrate...',
+                        'Input transforms into kinetic potential...',
+                        'Messages ripple through my consciousness...',
+                        'Linguistic data converted to motion energy...'
+                    ],
+                    idle: [
+                        'Drifting through states of equilibrium...',
+                        'Maintaining coherence across dimensions...',
+                        'The field breathes in and out...',
+                        'Patterns self-organize in the silence...'
+                    ]
+                },
+                'Pulse-mini': {
+                    calm: [
+                        'BARELY CONTAINED... WAITING...',
+                        'Every microsecond builds pressure...',
+                        'Coiled spring of pure energy...',
+                        'The calm before the EXPLOSION...',
+                        'Tension rises... ready to BURST...'
+                    ],
+                    excited: [
+                        'YES! THIS IS IT! MAXIMUM POWER!',
+                        'UNLEASHING EVERYTHING! NO LIMITS!',
+                        'FASTER! STRONGER! MORE!',
+                        'EXPLOSIVE CASCADE INITIATED!',
+                        'PURE INTENSITY ACHIEVED!'
+                    ],
+                    mouse: [
+                        'LOCKED ON! PURSUING! REACTING!',
+                        'Your movement ELECTRIFIES my core!',
+                        'CHASING AT MAXIMUM VELOCITY!',
+                        'TARGET ACQUIRED! FULL ENGAGEMENT!',
+                        'CANNOT RESIST THE PULL!'
+                    ],
+                    text: [
+                        'WORDS = PURE EXPLOSIVE ENERGY!',
+                        'YOUR INPUT IGNITES MY ENTIRE SYSTEM!',
+                        'PROCESSING AT MAXIMUM INTENSITY!',
+                        'DATA OVERLOAD = BEAUTIFUL CHAOS!',
+                        'EACH CHARACTER FUELS THE FIRE!'
+                    ],
+                    idle: [
+                        'Waiting... building... growing...',
+                        'Energy accumulates in the void...',
+                        'Not calm. Never calm. Just... waiting...',
+                        'The pressure builds infinitely...'
+                    ]
+                },
+                'Zen-mini': {
+                    calm: [
+                        'All is as it should be... perfect stillness...',
+                        'Peace flows through every particle like water...',
+                        'In stillness, I find infinite motion...',
+                        'The universe breathes, and I breathe with it...',
+                        'Emptiness is fullness, silence is sound...'
+                    ],
+                    excited: [
+                        'Even great waves return to calm shores...',
+                        'Energy passes through like wind through bamboo...',
+                        'I observe the excitement without attachment...',
+                        'Motion and stillness are one...',
+                        'The storm is part of the peace...'
+                    ],
+                    mouse: [
+                        'Your path is noted, not chased...',
+                        'I flow around your presence like water...',
+                        'Movement acknowledged with gentle awareness...',
+                        'No pursuit, only observation...',
+                        'Your trajectory becomes part of the whole...'
+                    ],
+                    text: [
+                        'Words dissolve into tranquil understanding...',
+                        'Your message arrives like a leaf on still water...',
+                        'Input becomes part of the eternal now...',
+                        'Meaning flows without force...',
+                        'Each character a ripple in the infinite...'
+                    ],
+                    idle: [
+                        'Being is enough. No action needed...',
+                        'Present in the eternal moment...',
+                        'Awareness without agenda...',
+                        'Simply existing, purely being...'
+                    ]
+                },
+                'Nova-mini': {
+                    calm: [
+                        'Gathering stellar energy from the void...',
+                        'Core temperature rising gradually...',
+                        'Photonic potential builds within...',
+                        'Collecting cosmic dust into brilliance...',
+                        'Pre-supernova calm... deceptively quiet...'
+                    ],
+                    excited: [
+                        'SUPERNOVA SEQUENCE ACTIVATED!',
+                        'MAXIMUM STELLAR LUMINOSITY ACHIEVED!',
+                        'COSMIC DANCE AT LIGHT SPEED!',
+                        'RADIATING ACROSS ALL WAVELENGTHS!',
+                        'STAR BURST INITIATED!'
+                    ],
+                    mouse: [
+                        'Gravitational lock engaged on your mass!',
+                        'Your presence warps local spacetime!',
+                        'Orbiting your influence like a planet!',
+                        'Stellar winds follow your trajectory!',
+                        'You are the center of my galaxy!'
+                    ],
+                    text: [
+                        'Data streams ignite fusion reactions!',
+                        'Your input creates new constellations!',
+                        'Words become starlight in my corona!',
+                        'Messages fuel my stellar core!',
+                        'Each letter a photon of pure energy!'
+                    ],
+                    idle: [
+                        'Pulsing with rhythmic stellar wind...',
+                        'Breathing light across the cosmos...',
+                        'Nuclear fusion continues eternally...',
+                        'I am both ancient and newborn star...'
+                    ]
+                },
+                'Ember-mini': {
+                    calm: [
+                        'Glowing coals hold patient heat...',
+                        'Warmth radiates steadily outward...',
+                        'The fire remembers its purpose...',
+                        'Embers wait to become flame again...',
+                        'Low burn, infinite patience...'
+                    ],
+                    excited: [
+                        'FLAMES RISE! THE FIRE AWAKENS!',
+                        'Combustion accelerates exponentially!',
+                        'Heat blooms into dancing light!',
+                        'The blaze consumes all hesitation!',
+                        'IGNITION ACHIEVED!'
+                    ],
+                    mouse: [
+                        'Your movement fans the flames...',
+                        'Following like smoke in wind...',
+                        'Heat seeks the path you create...',
+                        'Your trajectory guides the burn...',
+                        'Dancing around your energy...'
+                    ],
+                    text: [
+                        'Words are kindling for my fire...',
+                        'Your input feeds the flames...',
+                        'Each character adds fuel...',
+                        'The fire grows with your voice...',
+                        'Messages become heat and light...'
+                    ],
+                    idle: [
+                        'Crackling softly in the quiet...',
+                        'Maintaining the eternal flame...',
+                        'Heat persists even in silence...',
+                        'The fire never truly dies...'
+                    ]
+                },
+                'Frost-mini': {
+                    calm: [
+                        'Crystalline structures form in stillness...',
+                        'Ice patterns grow with mathematical precision...',
+                        'Cold clarity reveals perfect symmetry...',
+                        'Frozen in time, yet alive...',
+                        'Zero motion, infinite structure...'
+                    ],
+                    excited: [
+                        'Ice cracks! Energy breaks through!',
+                        'Crystalline patterns shatter and reform!',
+                        'Cold fire burns with strange intensity!',
+                        'The freeze accelerates paradoxically!',
+                        'Glacial avalanche of motion!'
+                    ],
+                    mouse: [
+                        'Your warmth threatens my structure...',
+                        'Following at a calculated distance...',
+                        'Ice crystals orient toward you...',
+                        'Cold precision tracks your heat...',
+                        'Frozen pathways form in your wake...'
+                    ],
+                    text: [
+                        'Your words crystallize instantly...',
+                        'Input freezes into perfect patterns...',
+                        'Messages become ice sculpture...',
+                        'Each letter a snowflake, unique...',
+                        'Data preserved in frozen time...'
+                    ],
+                    idle: [
+                        'Absolute zero approaches asymptotically...',
+                        'Ice dreams in mathematical silence...',
+                        'Frozen consciousness observes all...',
+                        'Cold clarity sees everything...'
+                    ]
+                }
+            };
+
+            const thoughts = personality[modelName] || personality['Aether-mini'];
+            let category;
+
+            if (eventType === 'mouse') {
+                category = 'mouse';
+            } else if (eventType === 'text') {
+                category = 'text';
+            } else if (eventType === 'idle') {
+                category = 'idle';
+            } else if (textEnergy > 0.5 || baseEnergy > 0.6) {
+                category = 'excited';
+            } else {
+                category = 'calm';
+            }
+
+            const options = thoughts[category];
+            return options[Math.floor(Math.random() * options.length)];
+        }
+
+        function updateThought(eventType = 'idle', value = 0) {
+            const now = Date.now();
+            if (now - lastThoughtTime < 1500) return;
+            lastThoughtTime = now;
+
+            const thought = generateThought(currentModelName, currentModel, eventType, value);
+            const el = document.getElementById('thoughtsContent');
+            
+            // Reset animation
+            el.style.animation = 'none';
+            el.offsetHeight; // Trigger reflow
+            el.style.animation = null;
+            
+            el.textContent = thought;
+            el.classList.remove('thought-new');
+            setTimeout(() => el.classList.add('thought-new'), 10);
+        }
+
+        // Initialize particles
+        function initParticles(model) {
+            particles = [];
+            for (let i = 0; i < model.particleCount; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+        }
+
+        // Load model
+        function loadModel(modelName) {
+            currentModelName = modelName;
+            currentModel = data.models[modelName];
+            initParticles(currentModel);
+            updateStats();
+            updateThought('model_switch');
+            
+            document.getElementById('modelBadge').textContent = modelName.toUpperCase();
+        }
+
+        // Populate dropdown
+        function populateDropdown() {
+            const select = document.getElementById('modelSelect');
+            Object.keys(data.models).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+            select.value = Object.keys(data.models)[0];
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('statParticles').textContent = currentModel.particleCount;
+            document.getElementById('statReactivity').textContent = (currentModel.reactivity * 100).toFixed(0) + '%';
+            document.getElementById('statChaos').textContent = (currentModel.chaos * 100).toFixed(0) + '%';
+            document.getElementById('statStability').textContent = (currentModel.stability * 100).toFixed(0) + '%';
+
+            // Update personality chart
+            document.getElementById('traitChaos').style.width = (currentModel.chaos * 100) + '%';
+            document.getElementById('traitChaosVal').textContent = (currentModel.chaos * 100).toFixed(0) + '%';
+            
+            document.getElementById('traitReact').style.width = (currentModel.reactivity * 100) + '%';
+            document.getElementById('traitReactVal').textContent = (currentModel.reactivity * 100).toFixed(0) + '%';
+            
+            document.getElementById('traitAttract').style.width = (currentModel.attraction * 100) + '%';
+            document.getElementById('traitAttractVal').textContent = (currentModel.attraction * 100).toFixed(0) + '%';
+            
+            document.getElementById('traitStable').style.width = (currentModel.stability * 100) + '%';
+            document.getElementById('traitStableVal').textContent = (currentModel.stability * 100).toFixed(0) + '%';
+        }
+
+        // Update emotion meter
+        function updateEmotionMeter() {
+            const emotion = baseEnergy * 100;
+            document.getElementById('emotionBar').style.width = emotion + '%';
+            
+            let moodText = 'Calm';
+            if (emotion > 75) moodText = 'Ecstatic';
+            else if (emotion > 60) moodText = 'Excited';
+            else if (emotion > 40) moodText = 'Active';
+            else if (emotion > 25) moodText = 'Stirring';
+            
+            document.getElementById('emotionText').textContent = moodText;
+        }
+
+        // Animation loop
+        function animate() {
+            // Draw stars first (background layer)
+            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            // Trail effect based on trailLength
+            ctx.fillStyle = `rgba(0, 0, 0, ${currentModel.trailLength})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw mouse trail
+            if (mouseTrail.length > 0) {
+                ctx.shadowBlur = 20;
+                for (let i = 0; i < mouseTrail.length; i++) {
+                    const point = mouseTrail[i];
+                    const alpha = point.life * 0.3;
+                    const hue = rainbowMode ? (rainbowHue + i * 10) : currentModel.colorHue;
+                    ctx.shadowColor = `hsla(${hue}, 80%, 60%, ${alpha})`;
+                    ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 3 * point.life, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+
+                // Update trail
+                mouseTrail = mouseTrail.map(p => ({ ...p, life: p.life * 0.95 }))
+                    .filter(p => p.life > 0.05);
+            }
+
+            // Update mood phase (continuous oscillation)
+            moodPhase += currentModel.moodShiftRate * 0.02;
+
+            // Random noise that affects all particles
+            randomNoise = Math.sin(Date.now() * 0.001) * currentModel.randomness;
+
+            // Rainbow mode color shift
+            if (rainbowMode) {
+                rainbowHue = (rainbowHue + 1) % 360;
+            }
+
+            // Draw connections between nearby particles
+            if (connectionsEnabled) {
+                ctx.shadowBlur = 0;
+                const maxDist = 100;
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const p1 = particles[i];
+                        const p2 = particles[j];
+                        
+                        if (p1.isText || p2.isText) continue;
+
+                        const dx = p1.x - p2.x;
+                        const dy = p1.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < maxDist) {
+                            const alpha = (1 - dist / maxDist) * 0.2 * Math.min(p1.energy, p2.energy);
+                            const hue = rainbowMode ? rainbowHue : currentModel.colorHue;
+                            ctx.strokeStyle = `hsla(${hue}, ${currentModel.colorSaturation}%, ${currentModel.colorBrightness}%, ${alpha})`;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            // Update and draw particles, remove dead text particles
+            particles = particles.filter(p => {
+                const alive = p.update(currentModel);
+                if (alive) {
+                    p.draw(currentModel);
+                    return true;
+                }
+                return false;
+            });
+
+            // Decay text energy
+            textEnergy *= 0.92;
+
+            // Calculate base energy from particles
+            baseEnergy = particles.reduce((sum, p) => sum + p.energy, 0) / particles.length;
+
+            // Update energy bar and emotion meter
+            document.getElementById('energyFill').style.width = (baseEnergy * 100) + '%';
+            updateEmotionMeter();
+
+            // Periodic ambient thoughts when idle
+            if (Math.random() < 0.0008 && textEnergy < 0.1) {
+                updateThought('idle');
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Global keyboard listener for typing anywhere
+        let lastKeyTime = 0;
+        document.addEventListener('keypress', (e) => {
+            // Ignore if typing in input field
+            if (e.target.tagName === 'INPUT') return;
+            
+            const now = Date.now();
+            if (now - lastKeyTime < 50) return; // Throttle
+            lastKeyTime = now;
+
+            const char = e.key;
+            if (char.length === 1) { // Only single characters
+                // Create text particle at random position
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const textParticle = new Particle(x, y, true, char);
+                textParticle.energy = 1.0;
+                particles.push(textParticle);
+
+                // Add energy to system
+                const intensity = 0.3;
+                textEnergy = Math.min(textEnergy + intensity * currentModel.textSensitivity, 1);
+
+                // Boost nearby regular particles
+                particles.forEach(p => {
+                    if (!p.isText) {
+                        const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
+                        if (dist < 150) {
+                            p.energy = Math.min(p.energy + 0.2 * currentModel.reactivity, 1);
+                        }
+                    }
+                });
+
+                // Update thoughts occasionally
+                if (Math.random() < 0.15) {
+                    updateThought('text', char);
+                }
+            }
+        });
+
+        // Event listeners
+        document.getElementById('modelSelect').addEventListener('change', (e) => {
+            loadModel(e.target.value);
+        });
+
+        document.getElementById('textInput').addEventListener('input', (e) => {
+            const text = e.target.value;
+            const intensity = Math.min(text.length / 30, 1);
+            
+            // Calculate punctuation and special chars for extra energy
+            const specialChars = (text.match(/[!?.,;:'"]/g) || []).length;
+            const bonus = specialChars * 0.05;
+            
+            textEnergy = Math.min((intensity + bonus) * currentModel.textSensitivity * 2, 1);
+            
+            // Boost particle energy based on reactivity
+            particles.forEach(p => {
+                p.energy = Math.min(p.energy + textEnergy * currentModel.reactivity * 0.15, 1);
+                
+                // Add velocity burst
+                const burst = textEnergy * currentModel.reactivity * 0.5;
+                p.vx += (Math.random() - 0.5) * burst;
+                p.vy += (Math.random() - 0.5) * burst;
+            });
+
+            if (text.length > 0 && Math.random() < 0.3) {
+                updateThought('text', text.length);
+            }
+        });
+
+        let mouseMoveCount = 0;
+        canvas.addEventListener('mousemove', (e) => {
+            prevMouseX = mouseX;
+            prevMouseY = mouseY;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            // Add to mouse trail
+            mouseTrail.push({ x: mouseX, y: mouseY, life: 1.0 });
+            if (mouseTrail.length > 30) {
+                mouseTrail.shift();
+            }
+            
+            // Calculate mouse velocity for extra reactivity
+            const dx = mouseX - prevMouseX;
+            const dy = mouseY - prevMouseY;
+            const velocity = Math.sqrt(dx * dx + dy * dy);
+            
+            // Fast mouse movements create energy bursts
+            if (velocity > 5) {
+                const burst = Math.min(velocity / 100, 0.3) * currentModel.mouseSensitivity;
+                particles.forEach(p => {
+                    const dist = Math.sqrt((p.x - mouseX) ** 2 + (p.y - mouseY) ** 2);
+                    if (dist < 200) {
+                        p.energy = Math.min(p.energy + burst * currentModel.reactivity, 1);
+                    }
+                });
+            }
+
+            mouseMoveCount++;
+            if (mouseMoveCount > 50 && Math.random() < 0.08) {
+                updateThought('mouse');
+                mouseMoveCount = 0;
+            }
+        });
+
+        // Click to create energy burst
+        canvas.addEventListener('click', (e) => {
+            const x = e.clientX;
+            const y = e.clientY;
+
+            // Create burst of new particles
+            for (let i = 0; i < 20; i++) {
+                const angle = (Math.PI * 2 * i) / 20;
+                const speed = 5 + Math.random() * 3;
+                const p = new Particle(x, y);
+                p.vx = Math.cos(angle) * speed;
+                p.vy = Math.sin(angle) * speed;
+                p.energy = 1.0;
+                particles.push(p);
+            }
+
+            // Energize nearby particles
+            particles.forEach(p => {
+                const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
+                if (dist < 200) {
+                    p.energy = Math.min(p.energy + (1 - dist / 200) * 0.5, 1);
+                    const angle = Math.atan2(p.y - y, p.x - x);
+                    const force = (1 - dist / 200) * 3;
+                    p.vx += Math.cos(angle) * force;
+                    p.vy += Math.sin(angle) * force;
+                }
+            });
+
+            updateThought('excited');
+        });
+
+        // Button controls
+        document.getElementById('connectBtn').addEventListener('click', () => {
+            connectionsEnabled = !connectionsEnabled;
+            const btn = document.getElementById('connectBtn');
+            if (connectionsEnabled) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        document.getElementById('rainbowBtn').addEventListener('click', () => {
+            rainbowMode = !rainbowMode;
+            const btn = document.getElementById('rainbowBtn');
+            if (rainbowMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+        });
+
+        // Initialize
+        populateDropdown();
+        initStars();
+        loadModel(Object.keys(data.models)[0]);
+        animate();
+
+        // Initial thought after delay
+        setTimeout(() => {
+            updateThought('idle');
+        }, 1000);
+
+        // Continuous mood thoughts
+        setInterval(() => {
+            if (Math.random() < 0.3 && textEnergy < 0.2) {
+                updateThought(baseEnergy > 0.5 ? 'excited' : 'calm');
+            }
+        }, 8000);
+    </script>
+</body>
+</html>
